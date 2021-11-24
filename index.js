@@ -1,14 +1,17 @@
-/**
- * GLOBAL CONSTANTS
- */
+/* ***** GLOBAL CONSTANTS ***** */
 
 const CONSTANTS = {
-	DATA: 10000
+	DATA: 1000
 }
 
-/* *************************** */
+const FORMULAS = {
+	"ABOVE": "above",
+	"BELOW": "below",
+	"BETWEEN": "between",
+	"OUTSIDE_OF": "not-between"
+}
 
-const debug = document.getElementById('debug');
+/* ******* FINE GLOBAL ******* */
 
 // generate 20 unix timestamp between today and a week ago
 const unixTimestamps = Array.from({
@@ -23,13 +26,9 @@ unixTimestamps.sort()
  * Generating 2 arrays of points, one with timestamps associated and one without
  */
 var timedData = [];
-var genericData = [];
 for (var i = 0; i < CONSTANTS.DATA; i++) {
-	timedData.push([ unixTimestamps[i], Math.round(Math.random() * 200) + 190])
-	genericData.push(Math.round(Math.random() * 200) + 190)
+	timedData.push([unixTimestamps[i], Math.floor(Math.random() * (2000 - 100 + 1)) + 100])
 }
-// dataWithTimestamps.sort((a, b) => a[0] - b[0])
-genericData.sort((a, b) => a - b)
 
 const baseOptions = {
 	chart: {
@@ -39,6 +38,11 @@ const baseOptions = {
 	},
 	xAxis: {
 		type: 'datetime',
+		plotBands: [{
+			from: unixTimestamps[200],
+			to: unixTimestamps[400],
+			color: 'rgba(68, 170, 213, .2)'
+		}],
 	},
 	plotOptions: {
 		series: {
@@ -57,6 +61,9 @@ const baseOptions = {
 				}
 			}
 		}
+	},
+	exporting: {
+		enabled: false
 	}
 }
 
@@ -70,7 +77,6 @@ let sourceChart = Highcharts.chart('container', {
 	},
 	series: [{
 		data: timedData,
-		// data: dataWithoutTimestamps,
 		showInLegend: true,
 	},
 	{
@@ -78,8 +84,7 @@ let sourceChart = Highcharts.chart('container', {
 		color: '#ff0059',
 		step: true,
 		showInLegend: false,
-}
-]
+	}]
 });
 
 /**
@@ -92,59 +97,184 @@ let resultChart = Highcharts.chart('result-chart', {
 	},
 	series: [{
 		data: timedData,
-		// data: dataWithoutTimestamps,
 		showInLegend: false,
 		zoneAxis: 'x' // serve per abilitare la separazione delle zone considerando l'asse x anziché y
 	}]
 });
 
+
 /**
- * Listener callbacks that contains the main logic for now
+ * Funzioni per logiche di filtro
  */
 
-const cbBoost = (e) => {
-	const { value: userValueCondition } = e.target;
-	document.querySelector("#input-value").innerHTML = userValueCondition;
-
-	/**
-	 * I punti considerati "selezionati" sono quelli che NON devono essere compresi nei calcoli
-	 */
+const tagBelow = () => {
 	let taggedPoints = []
 	let validPoints = []
+
+	let val = document.querySelector('#input-formula-min').value
+
+	// check if val is not empty
+	if (val === '') {
+		toastr.error('Please insert a value')
+		return
+	}
 
 	for (let [index, pointValue] of sourceChart.series[0].processedYData.entries()) {
 		
 		// la condizione dovrebbe cambiare in base alla selezione dell'utente
-		if (pointValue < userValueCondition) {
-			// point needs to be 'tagged' and not used in the calculations
-			// taggedPoints.push({
-			// 	x: sourceChart.series[0].processedXData[index],
-			// 	y: pointValue,
-			// 	index
-			// })
+		if (pointValue < val) {
 			taggedPoints.push([sourceChart.series[0].processedXData[index], pointValue])
-		} else {
-			// validPoints.push({
-			// 	x: sourceChart.series[0].processedXData[index],
-			// 	y: pointValue,
-			// 	index
-			// })
+			continue
+		} 
 
-			validPoints.push([sourceChart.series[0].processedXData[index],pointValue])
-		}
+		validPoints.push([sourceChart.series[0].processedXData[index],pointValue])
 	}
 
-	// * aggiorna il grafico sorgente con la nuova serie che indica i punti taggati
+	return {
+		taggedPoints,
+		validPoints
+	}
+}
 
-	// * inserisci i validPoints nel grafico result
+const tagAbove = () =>{
+	let taggedPoints = []
+	let validPoints = []
 
-	updateResultChart(validPoints)
+	let val = document.querySelector('#input-formula-min').value
+
+		// check if val is not empty
+		if (val === '') {
+			toastr.error('Please insert a value')
+			return
+		}
+
+	for (let [index, pointValue] of sourceChart.series[0].processedYData.entries()) {
+		
+		// la condizione dovrebbe cambiare in base alla selezione dell'utente
+		if (pointValue > val) {
+			taggedPoints.push([sourceChart.series[0].processedXData[index], pointValue])
+			continue
+		} 
+
+		validPoints.push([sourceChart.series[0].processedXData[index],pointValue])
+	}
+
+	return {
+		taggedPoints,
+		validPoints
+	}
+}
 
 
+const tagBetween = () => {
+	let taggedPoints = []
+	let validPoints = []
 
-	defineZonesBoost(taggedPoints)
+	let min = document.querySelector('#input-formula-min').value
+	let max = document.querySelector('#input-formula-max').value
+
+
+		// check if val is not empty
+		if (min === '' || max === '') {
+			toastr.error('Please insert a value')
+			return
+		}
+
+	for (let [index, pointValue] of sourceChart.series[0].processedYData.entries()) {
+		
+		// la condizione dovrebbe cambiare in base alla selezione dell'utente
+		if (pointValue >= min && pointValue <= max) {
+			taggedPoints.push([sourceChart.series[0].processedXData[index], pointValue])
+			continue
+		} 
+		validPoints.push([sourceChart.series[0].processedXData[index],pointValue])
+	}
+
+	return {
+		taggedPoints,
+		validPoints
+	}
+}
+
+const tagOutsideOf = () => {
+	let taggedPoints = []
+	let validPoints = []
+
+	let min = document.querySelector('#input-formula-min').value
+	let max = document.querySelector('#input-formula-max').value
+
+	// check if val is not empty
+	if (min === '' || max === '') {
+		toastr.error('Please insert a value')
+		return
+	}
+
+	for (let [index, pointValue] of sourceChart.series[0].processedYData.entries()) {
+		
+		// la condizione dovrebbe cambiare in base alla selezione dell'utente
+		if (pointValue <= min || pointValue >= max) {
+			taggedPoints.push([sourceChart.series[0].processedXData[index], pointValue])
+			continue
+		} 
+
+		validPoints.push([sourceChart.series[0].processedXData[index],pointValue])
+	}
+
+	return {
+		taggedPoints,
+		validPoints
+	}
+}
+
+/**
+ * Listener callbacks that contains the main logic for now
+ */
+
+const cbCalculateButton = (e) => {
+	const formula = document.querySelector("#select-formula").value
+
+	let result = {}
+
+	switch (formula) {
+		case FORMULAS.BELOW:
+			result = tagBelow()
+			break;
+
+		case FORMULAS.ABOVE:
+			result = tagAbove()
+			break;
+		case FORMULAS.BETWEEN:
+			result = tagBetween()
+			break;
+		case FORMULAS.OUTSIDE_OF:
+			result = tagOutsideOf()
+			break;
+
+		default:
+			break;
+	}
+	/**
+	 * I punti considerati "selezionati" sono quelli che NON devono essere compresi nei calcoli
+	 */
+
+	printAll(result.validPoints, result.taggedPoints)
+
+	updateResultChart(result.validPoints)
+	updateSourceChart(result.taggedPoints)
 
 }
+
+
+function printAll(validPoints, taggedPoints) {
+
+	document.querySelector('#tagged-points').innerHTML = `${taggedPoints.length} points have been tagged and won't be used`
+	document.querySelector('#valid-points').innerHTML = `${validPoints.length} valid points will be used`
+
+	let std = standardDeviation(validPoints)
+
+	document.querySelector('#result-txt').innerHTML = `resultin std: ${std}`
+}
+
 
 /**
  * Listeners
@@ -154,44 +284,16 @@ const cbBoost = (e) => {
  * 
  */
 
-// document.querySelector('#input-formula').addEventListener('change', cbNoBoost )
-document.querySelector('#input-formula').addEventListener('change', cbBoost )
+// document.querySelector('#input-formula').addEventListener('change', cbBoost )
 
+document.querySelector('#calculate-button').addEventListener('click', cbCalculateButton )
 
-
-/**
- * UTILS
- */
-
-
-// create a function that calculated the standard deviation of an array of numbers
-function standardDeviation(values) {
-
-	// calculate the mean
-	const average = values => values.reduce((a, b) => a + b) / values.length;
-
-	var avg = average(values);
-
-	var squareDiffs = values.map(function (value) {
-		var diff = value - avg;
-		var sqrDiff = diff * diff;
-		return sqrDiff;
-	});
-
-	var avgSquareDiff = average(squareDiffs);
-
-	var stdDev = Math.sqrt(avgSquareDiff);
-	return stdDev;
-}
-
-function defineZonesBoost(taggedPoints) {
+function updateSourceChart(taggedPoints) {
 
 	const taggedSeries = timedData.map(point => {
 		
 		let found = binarySearch(taggedPoints, point[0])
 		if (found !== -1) { // not found
-
-		// if (taggedPoints.find(value => value[0] === point[0])) { // ! LENTO
 			return point
 		} else {
 			return [point[0], null]
@@ -216,11 +318,35 @@ function updateResultChart(data) {
 	resultChart.redraw(true);
 }
 
+/**
+ * UTILS
+ */
+
+// create a function that calculated the standard deviation of an array of numbers
+function standardDeviation(val) {
+
+	let values = val.map(point => point[1])
+	
+	// calculate the mean
+	const average = values => values.reduce((a, b) => a + b) / values.length;
+
+	var avg = average(values);
+
+	var squareDiffs = values.map(function (value) {
+		var diff = value - avg;
+		var sqrDiff = diff * diff;
+		return sqrDiff;
+	});
+
+	var avgSquareDiff = average(squareDiffs);
+
+	var stdDev = Math.sqrt(avgSquareDiff);
+	return stdDev.toFixed(2);
+}
+
 function binarySearch(list, value) {
 	let low = 0, high = list.length - 1;
-	let iteration = 0
 	while (low <= high) {
-		iteration++
 		let mid = Math.floor((low + high) / 2);
 		let element = list[mid][0];
 		if (element < value) {
@@ -228,10 +354,8 @@ function binarySearch(list, value) {
 		} else if (element > value) {
 			high = mid - 1;
 		} else {
-			console.log('iterations: ', iteration);
 			return mid;
 		}
 	}
-	console.log('iterations: ', iteration);
 	return -1;
 }

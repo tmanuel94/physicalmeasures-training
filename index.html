@@ -1,66 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 </head>
+
 <body>
-  
+
   <div id="container" style="min-width: 310px; height: 300px;"></div>
-  
 
-
-  <p id="debug"></p>
-
-
-  <!-- <button id="read-button">Read data</button> -->
+  <!-- <p id="debug"></p> -->
 
 
 
-  <select id="select-formula">
-    <option value="below">below</option>
-    <option value="above">above</option>
-    <option value="between">between</option>
-    <option value="not-between">not-between</option>
-
-  </select>
-
-  <div
-    style="display: flex; width: 100%;">
-
-
-  <div
-    style="display: flex; width: 30%; flex-direction: column;">
-
+  <div style="display: flex; width: 100%;">
+    <div style="display: flex; width: 30%; flex-direction: column;">
+      
       <div>
-        <input id="input-formula" type="range" min="100" max="400">
+        <h2>Exclude values: </h2>
+        <select id="select-formula">
+          <option value="below">below</option>
+          <option value="above">above</option>
+          <option value="between">between</option>
+          <option value="not-between">not-between</option>
+        </select>
+        <input id="input-formula-min" type="number" placeholder="min">
+        <input id="input-formula-max" type="number" placeholder="max">
+
         <p id="input-value"></p>
+        
+        <button id="calculate-button">Calculate</button>
+        
       </div>
 
-
-
-      <p id="selected-points"></p>
-      <p id="unselected-points"></p>
+      <p id="tagged-points"></p>
+      <p id="valid-points"></p>
 
       <p id="result-txt"></p>
-      
+
     </div>
-
-
-      <div id="result-chart" style="min-width: 310px; height: 300px; width: 70%;"></div>
-
+    <div id="result-chart" style="min-width: 310px; height: 300px; width: 70%;" />
   </div>
-
-
-
-
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
 
   <script src="https://code.highcharts.com/highcharts.js"></script>
   <script src="https://code.highcharts.com/modules/exporting.js"></script>
   <script src="https://code.highcharts.com/modules/boost.js?_ga=2.95691994.754985858.1637574052-1304930819.1633516507"></script>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
   <script src="index.js"></script>
 </body>
+
 </html>
