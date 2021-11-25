@@ -50,22 +50,20 @@ const selectionEvent = (e) => {
 	
 	if (shiftKey) {
 		e.preventDefault()
-		selections.push({
-			from: min,
-			to: max,
-			color: 'rgba(68, 170, 213, .2)',
-			id: 'plot-band-1',
-			events: {
-				click: function (e) {
-					console.log(e)
-					// e.target.id
-				}
-			}
-		})
+
+		// format min and max to DD/MM/YYYY using moment
+
+		let minDate = moment(min).format('DD/MM/YYYY hh:mm:ss')
+		let maxDate = moment(max).format('DD/MM/YYYY hh:mm:ss')
+
+		toastr.info(`Selection: <br>${minDate} : FROM <br>${maxDate} : TO`)
+
+		selections.push([min, max])
+
 	
 		sourceChart.update({
 			xAxis: {
-				plotBands: selections
+				plotBands: generatePlotBands(selections)
 			}
 		}, false, false, false)
 	
@@ -125,7 +123,7 @@ let sourceChart = Highcharts.chart('container', {
 		data: timedData,
 		showInLegend: true,
 	},
-	{
+{
 		data: [],
 		color: '#ff0059',
 		step: true,
@@ -166,12 +164,32 @@ const tagBelow = () => {
 	}
 
 	for (let [index, pointValue] of sourceChart.series[0].processedYData.entries()) {
-		
+
+		// condizione tmp per verificare che il dato sia compreso tra tutte le selezioni temporali
+
+		// ! DA FARE REFACTORING
+		let xPoint = sourceChart.series[0].processedXData[index]
+
+		let isBetween = true
+		if (selections.length > 0) {
+			for (let selection of selections) {
+				if (xPoint >= selection[0] && xPoint <= selection[1]) {
+					isBetween = true
+					break
+				}
+				isBetween = false
+			}
+		}
+
+		// ! FINE REFACTORING
+
 		// la condizione dovrebbe cambiare in base alla selezione dell'utente
-		if (pointValue < val) {
+		if (pointValue < val || !isBetween) {
 			taggedPoints.push([sourceChart.series[0].processedXData[index], pointValue])
 			continue
-		} 
+		}
+
+		console.log("this is valid" ,[sourceChart.series[0].processedXData[index],pointValue] );
 
 		validPoints.push([sourceChart.series[0].processedXData[index],pointValue])
 	}
@@ -210,7 +228,6 @@ const tagAbove = () =>{
 		validPoints
 	}
 }
-
 
 const tagBetween = () => {
 	let taggedPoints = []
@@ -261,7 +278,7 @@ const tagOutsideOf = () => {
 		if (pointValue <= min || pointValue >= max) {
 			taggedPoints.push([sourceChart.series[0].processedXData[index], pointValue])
 			continue
-		} 
+		}
 
 		validPoints.push([sourceChart.series[0].processedXData[index],pointValue])
 	}
@@ -310,7 +327,6 @@ const cbCalculateButton = (e) => {
 
 }
 
-
 function printAll(validPoints, taggedPoints) {
 
 	document.querySelector('#tagged-points').innerHTML = `${taggedPoints.length} points have been tagged and won't be used`
@@ -320,7 +336,6 @@ function printAll(validPoints, taggedPoints) {
 
 	document.querySelector('#result-txt').innerHTML = `resultin std: ${std}`
 }
-
 
 /**
  * Listeners
@@ -406,7 +421,29 @@ function binarySearch(list, value) {
 	return -1;
 }
 
+function generatePlotBands(selections) {
+	return selections.map(selection => {
+		return {
+			from: selection[0],
+			to: selection[1],
+			color: 'rgba(68, 170, 213, 0.2)',
+			label: {
+				text: `${selection[0]} - ${selection[1]}`,
+				style: {
+					color: '#606060'
+				}
+			}
+		}
+	})
+}
 
+/**
+ * DATERANGEPICKER
+ */
+/**
+ * DA VALUTARE SE USARE QUESTA SOLUZIONE O INTERAGIRE COMPLETAMENTE SU HIGHCHARTS IN MANIERA GRAFICA PER QUANTO RIGUARDA
+ * LA SELEZIONE DEI LASSI TEMPORALI DI INTERESSE
+ */
 $('input[name="daterangepicker"]').daterangepicker({
 	"opens": "center",
 	"locale": {
