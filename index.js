@@ -37,12 +37,10 @@ for (var i = 0; i < CONSTANTS.DATA; i++) {
 let selections = []
 
 const selectionEvent = (e) => {
-
-	console.log("selecting");
 	
 	if (e.resetSelection) return true
+
 	let { ctrlKey, shiftKey } = e.originalEvent
-	
 	let { min, max } = e.xAxis[0]
 	
 	min = Math.floor(min)
@@ -51,14 +49,6 @@ const selectionEvent = (e) => {
 	if (shiftKey) {
 		e.preventDefault()
 
-		// format min and max to DD/MM/YYYY using moment
-
-		// let minDate = moment(min).format('DD/MM/YYYY hh:mm:ss')
-		// let maxDate = moment(max).format('DD/MM/YYYY hh:mm:ss')
-
-		// toastr.info(`Selection: <br>${minDate} : FROM <br>${maxDate} : TO`)
-
-		// selections.push([min, max])
 		if (selections.length > 0) {
 			selections = createSelections([...selections, [min, max]])
 		} else {
@@ -72,7 +62,6 @@ const selectionEvent = (e) => {
 		}, false, false, false)
 	
 		sourceChart.redraw(false)
-
 	}
 }
 
@@ -92,19 +81,10 @@ function removeSelection(_selection) {
 		return
 	}
 
-	toastr.warning('index not found')
+	toastr.warning('selection not found')
 }
 
-
-
 const baseOptions = {
-	chart: {
-		type: 'line',
-		zoomType: 'x',
-		events: {
-			selection: selectionEvent
-		}
-	},
 	xAxis: {
 		type: 'datetime',
 	},
@@ -136,6 +116,13 @@ const baseOptions = {
  */
 let sourceChart = Highcharts.chart('container', {
 	...baseOptions,
+	chart: {
+		type: 'line',
+		zoomType: 'x',
+		events: {
+			selection: selectionEvent
+		}
+	},
 	title: {
 		text: 'Select points by click-drag'
 	},
@@ -156,6 +143,10 @@ let sourceChart = Highcharts.chart('container', {
  */
 let resultChart = Highcharts.chart('result-chart', {
 	...baseOptions,
+	chart: {
+		type: 'line',
+		zoomType: 'x',
+	},
 	title: {
 		text: 'Result'
 	},
@@ -164,8 +155,7 @@ let resultChart = Highcharts.chart('result-chart', {
 		showInLegend: false,
 		zoneAxis: 'x' // serve per abilitare la separazione delle zone considerando l'asse x anziché y
 	}]
-});
-
+})
 
 /**
  * Filters
@@ -185,13 +175,9 @@ const tagBelow = () => {
 
 	for (let [index, pointValue] of sourceChart.series[0].processedYData.entries()) {
 
-		// condizione tmp per verificare che il dato sia compreso tra tutte le selezioni temporali
-
 		let xPoint = sourceChart.series[0].processedXData[index]
-
 		let isBetween = checkIfPointIsInBetween(xPoint, selections)
 
-		// la condizione dovrebbe cambiare in base alla selezione dell'utente
 		if (pointValue < val || !isBetween) {
 			taggedPoints.push([xPoint, pointValue])
 			continue
@@ -206,7 +192,7 @@ const tagBelow = () => {
 	}
 }
 
-const tagAbove = () =>{
+const tagAbove = () => {
 	let taggedPoints = []
 	let validPoints = []
 
@@ -221,9 +207,9 @@ const tagAbove = () =>{
 	for (let [index, pointValue] of sourceChart.series[0].processedYData.entries()) {
 		
 		let xPoint = sourceChart.series[0].processedXData[index]
-
 		let isBetween = checkIfPointIsInBetween(xPoint, selections)
 
+		// ! per valore ad esempio 10, si crea un errore, nessun punto viene validato, riverificare la condizione in OR
 		if (pointValue > val || !isBetween) {
 			taggedPoints.push([xPoint, pointValue])
 			continue
@@ -286,7 +272,6 @@ const tagOutsideOf = () => {
 	for (let [index, pointValue] of sourceChart.series[0].processedYData.entries()) {
 		
 		let xPoint = sourceChart.series[0].processedXData[index]
-
 		let isBetween = checkIfPointIsInBetween(xPoint, selections)
 
 		if (pointValue <= min || pointValue >= max || !isBetween) {
@@ -308,6 +293,7 @@ const tagOutsideOf = () => {
  */
 
 const cbCalculateButtonClick = (e) => {
+	e.preventDefault()
 	const formula = document.querySelector("#select-formula").value
 
 	let result = {}
@@ -316,7 +302,6 @@ const cbCalculateButtonClick = (e) => {
 		case FORMULAS.BELOW:
 			result = tagBelow()
 			break;
-
 		case FORMULAS.ABOVE:
 			result = tagAbove()
 			break;
@@ -326,7 +311,6 @@ const cbCalculateButtonClick = (e) => {
 		case FORMULAS.OUTSIDE_OF:
 			result = tagOutsideOf()
 			break;
-
 		default:
 			break;
 	}
@@ -334,45 +318,32 @@ const cbCalculateButtonClick = (e) => {
 	 * I punti considerati "selezionati" sono quelli che NON devono essere compresi nei calcoli
 	 */
 
-	printAll(result.validPoints, result.taggedPoints)
-
+	printAll(result.validPoints, result.taggedPoints) // print generico dimostrativo
 	updateResultChart(result.validPoints)
 	updateSourceChart(result.taggedPoints)
-
 }
 
 function printAll(validPoints, taggedPoints) {
-
 	document.querySelector('#tagged-points').innerHTML = `${taggedPoints.length} points have been tagged and won't be used`
 	document.querySelector('#valid-points').innerHTML = `${validPoints.length} valid points will be used`
-
 	let std = standardDeviation(validPoints)
-
 	document.querySelector('#result-txt').innerHTML = `resultin std: ${std}`
 }
 
 /**
  * Listeners
- * 
- * To enable the boost logic, pass [cbBoost] as a callback, then enable the 'datetime' on xAxis on both the charts
- * use [dataWithTimestamps] as a source of data and uncomment the second series on the chart
- * 
  */
-
-// document.querySelector('#input-formula').addEventListener('change', cbBoost )
 
 document.querySelector('#calculate-button').addEventListener('click', cbCalculateButtonClick )
 
 function updateSourceChart(taggedPoints) {
 
 	const taggedSeries = timedData.map(point => {
-		
 		let found = binarySearch(taggedPoints, point[0])
 		if (found !== -1) { // not found
 			return point
-		} else {
-			return [point[0], null]
-		}
+		} 	
+		return [point[0], null]
 	})
 
 	sourceChart.update({
@@ -388,8 +359,9 @@ function updateSourceChart(taggedPoints) {
 
 function updateResultChart(data) {
 	resultChart.update({
-		series: [{data: data}]}
-		,false, false, false)
+		series: [{data: data}]
+	}, false, false, false)
+		
 	resultChart.redraw(true);
 }
 
@@ -408,9 +380,10 @@ function standardDeviation(val) {
 	var avg = average(values);
 
 	var squareDiffs = values.map(function (value) {
-		var diff = value - avg;
-		var sqrDiff = diff * diff;
-		return sqrDiff;
+		// var diff = value - avg;
+		// var sqrDiff = diff * diff;
+		// return sqrDiff;
+		return Math.pow(value - avg, 2)
 	});
 
 	var avgSquareDiff = average(squareDiffs);
@@ -443,7 +416,7 @@ function generatePlotBands(_selections) {
 			color: 'rgba(68, 170, 213, 0.2)',
 			label: {
 				className: 'hide',
-				text: `${moment(selection[0]).format("DD/MM/YYYY hh:mm:ss")} - ${moment(selection[1]).format("DD/MM/YYYY hh:mm:ss")}`,
+				text: `<b>From ${moment(selection[0]).format("DD/MM/YYYY hh:mm:ss")} <br>To ${moment(selection[1]).format("DD/MM/YYYY hh:mm:ss")}</b>`,
 				style: {
 					color: '#606060',
 				}
@@ -453,13 +426,11 @@ function generatePlotBands(_selections) {
 					removeSelection(selection)
 				},
 				mouseout: function (e) {
-					console.log(this)
 					this.label.addClass('hide')
 					this.label.removeClass('show')
 
 				},
 				mouseover: function (e) {
-					console.log(this)
 					this.label.addClass('show')
 					this.label.removeClass('hide')				}
 			}
@@ -481,16 +452,11 @@ function checkIfPointIsInBetween(point, selections) {
 	return isBetween
 }
 
-
 function createSelections(selections, finish = false) {
 	
-	if (finish) {
-		console.log(selections)
-		return selections
-	}
+	if (finish) return selections
 
 	let isFinish = true
-
 	let newArray = []
 
 	for (let [parentIndex, j] of selections.entries()) {
@@ -498,105 +464,27 @@ function createSelections(selections, finish = false) {
 
 			if ((j[0] > i[0] && j[0] < i[1]) && j[1] > i[1]) {
 				selections[parentIndex] = [i[0], j[1]]
-				selections.splice(comparingIndex, 1)
-				isFinish = false
 			}
 
 			else if (j[0] < i[0] && (j[1] > i[0] && j[1] < i[1])) {
 				selections[parentIndex] = [j[0], i[1]]
-				selections.splice(comparingIndex, 1)
-				isFinish = false
-
 			}
 
 			else if (j[0] < i[0] && j[1] > i[1]) {
 				selections[parentIndex] = [j[0], j[1]]
-				selections.splice(comparingIndex, 1)
-				isFinish = false
-
 			}
 
 			else if (j[0] < i[0] && j[1] > i[1]) {
 				selections[parentIndex] = [i[0], i[1]]
-				selections.splice(comparingIndex, 1)
-				isFinish = false
 			}
-			else {
-				continue
-			}
+
+			else continue
+
+			selections.splice(comparingIndex, 1)
+			isFinish = false
 
 		}
 	}
 
 	return createSelections(selections, isFinish)
 }
-
-/**
- * DATERANGEPICKER
- */
-/**
- * DA VALUTARE SE USARE QUESTA SOLUZIONE O INTERAGIRE COMPLETAMENTE SU HIGHCHARTS IN MANIERA GRAFICA PER QUANTO RIGUARDA
- * LA SELEZIONE DEI LASSI TEMPORALI DI INTERESSE
- */
-
-// $('input[name="daterangepicker"]').daterangepicker({
-// 	"opens": "center",
-// 	"locale": {
-// 		"format": "DD/MM/YYYY",
-// 		"separator": " - ",
-// 		"applyLabel": "Apply",
-// 		"cancelLabel": "Cancel",
-// 		"fromLabel": "From",
-// 		"toLabel": "To",
-// 		"customRangeLabel": "Custom",
-// 		"weekLabel": "W",
-// 		"daysOfWeek": [
-// 			"Mo",
-// 			"Tu",
-// 			"We",
-// 			"Th",
-// 			"Fr",
-// 			"Sa",
-// 			"Su"	
-// 		],
-// 		"monthNames": [
-// 			"January",
-// 			"February",
-// 			"March",
-// 			"April",
-// 			"May",
-// 			"June",
-// 			"July",
-// 			"August",
-// 			"September",
-// 			"October",
-// 			"November",
-// 			"December"
-// 		],
-// 		"firstDay": 1
-// 	},
-// 	"startDate": unixTimestamps[0],
-// 	"endDate": unixTimestamps[unixTimestamps.length - 1],
-// 	"minDate": moment(unixTimestamps[0]),
-// 	"maxDate": moment(unixTimestamps[unixTimestamps.length - 1])
-// }, function (start, end, label) {
-
-// 	sourceChart.update({
-// 		xAxis: {
-// 			plotBands: [{
-// 				from: start.unix() * 1000,
-// 				to: end.unix() * 1000,
-// 				color: 'rgba(68, 170, 213, .2)',
-// 				id: 'plot-band-1',
-// 				events: {
-// 					click: function (e) {
-// 						console.log(e)
-// 						// e.target.id
-// 					}
-// 				}
-// 			}],
-// 		}
-// 	}, false, false, false);
-
-// 	sourceChart.redraw(false)
-// });
