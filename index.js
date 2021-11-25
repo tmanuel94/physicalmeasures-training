@@ -1,7 +1,7 @@
 /* ***** GLOBAL CONSTANTS ***** */
 
 const CONSTANTS = {
-	DATA: 1000
+	DATA: 10000
 }
 
 const FORMULAS = {
@@ -76,6 +76,24 @@ const selectionEvent = (e) => {
 	}
 }
 
+function removeSelection(_selection) {
+
+	let indexToRemove =	selections.findIndex(selection => selection === _selection)
+	if (indexToRemove !== -1) {
+		selections.splice(indexToRemove, 1)
+
+		sourceChart.update({
+			xAxis: {
+				plotBands: generatePlotBands(selections)
+			}
+		}, false, false, false)
+	
+		sourceChart.redraw(false)
+		return
+	}
+
+	toastr.warning('index not found')
+}
 
 
 
@@ -424,10 +442,26 @@ function generatePlotBands(_selections) {
 			to: selection[1],
 			color: 'rgba(68, 170, 213, 0.2)',
 			label: {
-				text: `${selection[0]} - ${selection[1]}`,
+				className: 'hide',
+				text: `${moment(selection[0]).format("DD/MM/YYYY hh:mm:ss")} - ${moment(selection[1]).format("DD/MM/YYYY hh:mm:ss")}`,
 				style: {
-					color: '#606060'
+					color: '#606060',
 				}
+			},
+			events: {
+				click: function (e) {
+					removeSelection(selection)
+				},
+				mouseout: function (e) {
+					console.log(this)
+					this.label.addClass('hide')
+					this.label.removeClass('show')
+
+				},
+				mouseover: function (e) {
+					console.log(this)
+					this.label.addClass('show')
+					this.label.removeClass('hide')				}
 			}
 		}
 	})
@@ -462,8 +496,6 @@ function createSelections(selections, finish = false) {
 	for (let [parentIndex, j] of selections.entries()) {
 		for (let [comparingIndex, i] of selections.entries()) {
 
-
-
 			if ((j[0] > i[0] && j[0] < i[1]) && j[1] > i[1]) {
 				selections[parentIndex] = [i[0], j[1]]
 				selections.splice(comparingIndex, 1)
@@ -493,13 +525,6 @@ function createSelections(selections, finish = false) {
 				continue
 			}
 
-			// 4 casi ?
-			// 1. j[0] compreso tra i[0] e i[1] && j[1] > i[1] => new [i[0], j[1]]
-			// 2. j[0] < i[0] && j[1] compreso tra i[0] e [1] => new [j[0], i[1]]
-			// 3. j[0] < i[0] && j[1] > i[1] => new [j[0], j[1]]
-			// 4. j[0] > i[0] && j[1] < i[1] => new [i[0], i[1]]
-			// else continue
-
 		}
 	}
 
@@ -513,64 +538,65 @@ function createSelections(selections, finish = false) {
  * DA VALUTARE SE USARE QUESTA SOLUZIONE O INTERAGIRE COMPLETAMENTE SU HIGHCHARTS IN MANIERA GRAFICA PER QUANTO RIGUARDA
  * LA SELEZIONE DEI LASSI TEMPORALI DI INTERESSE
  */
-$('input[name="daterangepicker"]').daterangepicker({
-	"opens": "center",
-	"locale": {
-		"format": "DD/MM/YYYY",
-		"separator": " - ",
-		"applyLabel": "Apply",
-		"cancelLabel": "Cancel",
-		"fromLabel": "From",
-		"toLabel": "To",
-		"customRangeLabel": "Custom",
-		"weekLabel": "W",
-		"daysOfWeek": [
-			"Mo",
-			"Tu",
-			"We",
-			"Th",
-			"Fr",
-			"Sa",
-			"Su"	
-		],
-		"monthNames": [
-			"January",
-			"February",
-			"March",
-			"April",
-			"May",
-			"June",
-			"July",
-			"August",
-			"September",
-			"October",
-			"November",
-			"December"
-		],
-		"firstDay": 1
-	},
-	"startDate": unixTimestamps[0],
-	"endDate": unixTimestamps[unixTimestamps.length - 1],
-	"minDate": moment(unixTimestamps[0]),
-	"maxDate": moment(unixTimestamps[unixTimestamps.length - 1])
-}, function (start, end, label) {
 
-	sourceChart.update({
-		xAxis: {
-			plotBands: [{
-				from: start.unix() * 1000,
-				to: end.unix() * 1000,
-				color: 'rgba(68, 170, 213, .2)',
-				id: 'plot-band-1',
-				events: {
-					click: function (e) {
-						console.log(e)
-						// e.target.id
-					}
-				}
-			}],
-		}
-	}, false, false, false);
+// $('input[name="daterangepicker"]').daterangepicker({
+// 	"opens": "center",
+// 	"locale": {
+// 		"format": "DD/MM/YYYY",
+// 		"separator": " - ",
+// 		"applyLabel": "Apply",
+// 		"cancelLabel": "Cancel",
+// 		"fromLabel": "From",
+// 		"toLabel": "To",
+// 		"customRangeLabel": "Custom",
+// 		"weekLabel": "W",
+// 		"daysOfWeek": [
+// 			"Mo",
+// 			"Tu",
+// 			"We",
+// 			"Th",
+// 			"Fr",
+// 			"Sa",
+// 			"Su"	
+// 		],
+// 		"monthNames": [
+// 			"January",
+// 			"February",
+// 			"March",
+// 			"April",
+// 			"May",
+// 			"June",
+// 			"July",
+// 			"August",
+// 			"September",
+// 			"October",
+// 			"November",
+// 			"December"
+// 		],
+// 		"firstDay": 1
+// 	},
+// 	"startDate": unixTimestamps[0],
+// 	"endDate": unixTimestamps[unixTimestamps.length - 1],
+// 	"minDate": moment(unixTimestamps[0]),
+// 	"maxDate": moment(unixTimestamps[unixTimestamps.length - 1])
+// }, function (start, end, label) {
 
-	sourceChart.redraw(false)
-});
+// 	sourceChart.update({
+// 		xAxis: {
+// 			plotBands: [{
+// 				from: start.unix() * 1000,
+// 				to: end.unix() * 1000,
+// 				color: 'rgba(68, 170, 213, .2)',
+// 				id: 'plot-band-1',
+// 				events: {
+// 					click: function (e) {
+// 						console.log(e)
+// 						// e.target.id
+// 					}
+// 				}
+// 			}],
+// 		}
+// 	}, false, false, false);
+
+// 	sourceChart.redraw(false)
+// });
