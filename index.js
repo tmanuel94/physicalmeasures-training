@@ -30,19 +30,65 @@ for (var i = 0; i < CONSTANTS.DATA; i++) {
 	timedData.push([unixTimestamps[i], Math.floor(Math.random() * (2000 - 100 + 1)) + 100])
 }
 
+
+
+/**
+ * Custom Events
+ */
+
+let selections = []
+
+const selectionEvent = (e) => {
+	
+	if (e.resetSelection) return true
+	let { ctrlKey, shiftKey } = e.originalEvent
+	
+	let { min, max } = e.xAxis[0]
+	
+	min = Math.floor(min)
+	max = Math.floor(max)
+	
+	if (shiftKey) {
+		e.preventDefault()
+		selections.push({
+			from: min,
+			to: max,
+			color: 'rgba(68, 170, 213, .2)',
+			id: 'plot-band-1',
+			events: {
+				click: function (e) {
+					console.log(e)
+					// e.target.id
+				}
+			}
+		})
+	
+		sourceChart.update({
+			xAxis: {
+				plotBands: selections
+			}
+		}, false, false, false)
+	
+		sourceChart.redraw(false)
+
+	}
+
+		
+		// e.originalevent.ctrlKey/shiftKey
+		// e.xAxis[0].min/max (Math.floor()) => update plotbands if shiftKey is pressed
+}
+
+
 const baseOptions = {
 	chart: {
 		type: 'line',
-
-		zoomType: 'x'
+		zoomType: 'x',
+		events: {
+			selection: selectionEvent
+		}
 	},
 	xAxis: {
 		type: 'datetime',
-		plotBands: [{
-			from: unixTimestamps[200],
-			to: unixTimestamps[400],
-			color: 'rgba(68, 170, 213, .2)'
-		}],
 	},
 	plotOptions: {
 		series: {
@@ -359,3 +405,67 @@ function binarySearch(list, value) {
 	}
 	return -1;
 }
+
+
+$('input[name="daterangepicker"]').daterangepicker({
+	"opens": "center",
+	"locale": {
+		"format": "DD/MM/YYYY",
+		"separator": " - ",
+		"applyLabel": "Apply",
+		"cancelLabel": "Cancel",
+		"fromLabel": "From",
+		"toLabel": "To",
+		"customRangeLabel": "Custom",
+		"weekLabel": "W",
+		"daysOfWeek": [
+			"Mo",
+			"Tu",
+			"We",
+			"Th",
+			"Fr",
+			"Sa",
+			"Su"	
+		],
+		"monthNames": [
+			"January",
+			"February",
+			"March",
+			"April",
+			"May",
+			"June",
+			"July",
+			"August",
+			"September",
+			"October",
+			"November",
+			"December"
+		],
+		"firstDay": 1
+	},
+	"startDate": unixTimestamps[0],
+	"endDate": unixTimestamps[unixTimestamps.length - 1],
+	"minDate": moment(unixTimestamps[0]),
+	"maxDate": moment(unixTimestamps[unixTimestamps.length - 1])
+}, function (start, end, label) {
+
+	sourceChart.update({
+		xAxis: {
+			plotBands: [{
+				from: start.unix() * 1000,
+				to: end.unix() * 1000,
+				color: 'rgba(68, 170, 213, .2)',
+				id: 'plot-band-1',
+				events: {
+					click: function (e) {
+						console.log(e)
+						// e.target.id
+					}
+				}
+			}],
+		}
+	}, false, false, false);
+
+	sourceChart.redraw(false)
+});
+
