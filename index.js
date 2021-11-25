@@ -167,31 +167,17 @@ const tagBelow = () => {
 
 		// condizione tmp per verificare che il dato sia compreso tra tutte le selezioni temporali
 
-		// ! DA FARE REFACTORING
 		let xPoint = sourceChart.series[0].processedXData[index]
 
-		let isBetween = true
-		if (selections.length > 0) {
-			for (let selection of selections) {
-				if (xPoint >= selection[0] && xPoint <= selection[1]) {
-					isBetween = true
-					break
-				}
-				isBetween = false
-			}
-		}
-
-		// ! FINE REFACTORING
+		let isBetween = checkIfPointIsInBetween(xPoint, selections)
 
 		// la condizione dovrebbe cambiare in base alla selezione dell'utente
 		if (pointValue < val || !isBetween) {
-			taggedPoints.push([sourceChart.series[0].processedXData[index], pointValue])
+			taggedPoints.push([xPoint, pointValue])
 			continue
 		}
 
-		console.log("this is valid" ,[sourceChart.series[0].processedXData[index],pointValue] );
-
-		validPoints.push([sourceChart.series[0].processedXData[index],pointValue])
+		validPoints.push([xPoint,pointValue])
 	}
 
 	return {
@@ -214,13 +200,17 @@ const tagAbove = () =>{
 
 	for (let [index, pointValue] of sourceChart.series[0].processedYData.entries()) {
 		
+		let xPoint = sourceChart.series[0].processedXData[index]
+
+		let isBetween = checkIfPointIsInBetween(xPoint, selections)
+
 		// la condizione dovrebbe cambiare in base alla selezione dell'utente
-		if (pointValue > val) {
-			taggedPoints.push([sourceChart.series[0].processedXData[index], pointValue])
+		if (pointValue > val || !isBetween) {
+			taggedPoints.push([xPoint, pointValue])
 			continue
 		} 
 
-		validPoints.push([sourceChart.series[0].processedXData[index],pointValue])
+		validPoints.push([xPoint,pointValue])
 	}
 
 	return {
@@ -236,21 +226,25 @@ const tagBetween = () => {
 	let min = document.querySelector('#input-formula-min').value
 	let max = document.querySelector('#input-formula-max').value
 
-
-		// check if val is not empty
-		if (min === '' || max === '') {
-			toastr.error('Please insert a value')
-			return
-		}
+	// check if val is not empty
+	if (min === '' || max === '') {
+		toastr.error('Please insert a value')
+		return
+	}
 
 	for (let [index, pointValue] of sourceChart.series[0].processedYData.entries()) {
+
+		let xPoint = sourceChart.series[0].processedXData[index]
+
+		let isBetween = checkIfPointIsInBetween(xPoint, selections)
+
 		
 		// la condizione dovrebbe cambiare in base alla selezione dell'utente
-		if (pointValue >= min && pointValue <= max) {
-			taggedPoints.push([sourceChart.series[0].processedXData[index], pointValue])
+		if (pointValue >= min && pointValue <= max || !isBetween) {
+			taggedPoints.push([xPoint, pointValue])
 			continue
 		} 
-		validPoints.push([sourceChart.series[0].processedXData[index],pointValue])
+		validPoints.push([xPoint,pointValue])
 	}
 
 	return {
@@ -274,13 +268,17 @@ const tagOutsideOf = () => {
 
 	for (let [index, pointValue] of sourceChart.series[0].processedYData.entries()) {
 		
+		let xPoint = sourceChart.series[0].processedXData[index]
+
+		let isBetween = checkIfPointIsInBetween(xPoint, selections)
+
 		// la condizione dovrebbe cambiare in base alla selezione dell'utente
-		if (pointValue <= min || pointValue >= max) {
-			taggedPoints.push([sourceChart.series[0].processedXData[index], pointValue])
+		if (pointValue <= min || pointValue >= max || !isBetween) {
+			taggedPoints.push([xPoint, pointValue])
 			continue
 		}
 
-		validPoints.push([sourceChart.series[0].processedXData[index],pointValue])
+		validPoints.push([xPoint,pointValue])
 	}
 
 	return {
@@ -435,6 +433,20 @@ function generatePlotBands(selections) {
 			}
 		}
 	})
+}
+
+function checkIfPointIsInBetween(point, selections) {
+	let isBetween = true
+	if (selections.length > 0) {
+		for (let selection of selections) {
+			if (point >= selection[0] && point <= selection[1]) {
+				isBetween = true
+				break
+			}
+			isBetween = false
+		}
+	}
+	return isBetween
 }
 
 /**
