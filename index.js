@@ -30,8 +30,6 @@ for (var i = 0; i < CONSTANTS.DATA; i++) {
 	timedData.push([unixTimestamps[i], Math.floor(Math.random() * (2000 - 100 + 1)) + 100])
 }
 
-
-
 /**
  * Custom Events
  */
@@ -39,6 +37,8 @@ for (var i = 0; i < CONSTANTS.DATA; i++) {
 let selections = []
 
 const selectionEvent = (e) => {
+
+	console.log("selecting");
 	
 	if (e.resetSelection) return true
 	let { ctrlKey, shiftKey } = e.originalEvent
@@ -53,14 +53,18 @@ const selectionEvent = (e) => {
 
 		// format min and max to DD/MM/YYYY using moment
 
-		let minDate = moment(min).format('DD/MM/YYYY hh:mm:ss')
-		let maxDate = moment(max).format('DD/MM/YYYY hh:mm:ss')
+		// let minDate = moment(min).format('DD/MM/YYYY hh:mm:ss')
+		// let maxDate = moment(max).format('DD/MM/YYYY hh:mm:ss')
 
-		toastr.info(`Selection: <br>${minDate} : FROM <br>${maxDate} : TO`)
+		// toastr.info(`Selection: <br>${minDate} : FROM <br>${maxDate} : TO`)
 
-		selections.push([min, max])
+		// selections.push([min, max])
+		if (selections.length > 0) {
+			selections = createSelections([...selections, [min, max]])
+		} else {
+			selections = [[min, max]]
+		}
 
-	
 		sourceChart.update({
 			xAxis: {
 				plotBands: generatePlotBands(selections)
@@ -70,11 +74,9 @@ const selectionEvent = (e) => {
 		sourceChart.redraw(false)
 
 	}
-
-		
-		// e.originalevent.ctrlKey/shiftKey
-		// e.xAxis[0].min/max (Math.floor()) => update plotbands if shiftKey is pressed
 }
+
+
 
 
 const baseOptions = {
@@ -148,7 +150,7 @@ let resultChart = Highcharts.chart('result-chart', {
 
 
 /**
- * Funzioni per logiche di filtro
+ * Filters
  */
 
 const tagBelow = () => {
@@ -204,7 +206,6 @@ const tagAbove = () =>{
 
 		let isBetween = checkIfPointIsInBetween(xPoint, selections)
 
-		// la condizione dovrebbe cambiare in base alla selezione dell'utente
 		if (pointValue > val || !isBetween) {
 			taggedPoints.push([xPoint, pointValue])
 			continue
@@ -238,8 +239,6 @@ const tagBetween = () => {
 
 		let isBetween = checkIfPointIsInBetween(xPoint, selections)
 
-		
-		// la condizione dovrebbe cambiare in base alla selezione dell'utente
 		if (pointValue >= min && pointValue <= max || !isBetween) {
 			taggedPoints.push([xPoint, pointValue])
 			continue
@@ -272,7 +271,6 @@ const tagOutsideOf = () => {
 
 		let isBetween = checkIfPointIsInBetween(xPoint, selections)
 
-		// la condizione dovrebbe cambiare in base alla selezione dell'utente
 		if (pointValue <= min || pointValue >= max || !isBetween) {
 			taggedPoints.push([xPoint, pointValue])
 			continue
@@ -291,7 +289,7 @@ const tagOutsideOf = () => {
  * Listener callbacks that contains the main logic for now
  */
 
-const cbCalculateButton = (e) => {
+const cbCalculateButtonClick = (e) => {
 	const formula = document.querySelector("#select-formula").value
 
 	let result = {}
@@ -345,7 +343,7 @@ function printAll(validPoints, taggedPoints) {
 
 // document.querySelector('#input-formula').addEventListener('change', cbBoost )
 
-document.querySelector('#calculate-button').addEventListener('click', cbCalculateButton )
+document.querySelector('#calculate-button').addEventListener('click', cbCalculateButtonClick )
 
 function updateSourceChart(taggedPoints) {
 
@@ -419,8 +417,8 @@ function binarySearch(list, value) {
 	return -1;
 }
 
-function generatePlotBands(selections) {
-	return selections.map(selection => {
+function generatePlotBands(_selections) {
+	return _selections.map(selection => {
 		return {
 			from: selection[0],
 			to: selection[1],
@@ -447,6 +445,65 @@ function checkIfPointIsInBetween(point, selections) {
 		}
 	}
 	return isBetween
+}
+
+
+function createSelections(selections, finish = false) {
+	
+	if (finish) {
+		console.log(selections)
+		return selections
+	}
+
+	let isFinish = true
+
+	let newArray = []
+
+	for (let [parentIndex, j] of selections.entries()) {
+		for (let [comparingIndex, i] of selections.entries()) {
+
+
+
+			if ((j[0] > i[0] && j[0] < i[1]) && j[1] > i[1]) {
+				selections[parentIndex] = [i[0], j[1]]
+				selections.splice(comparingIndex, 1)
+				isFinish = false
+			}
+
+			else if (j[0] < i[0] && (j[1] > i[0] && j[1] < i[1])) {
+				selections[parentIndex] = [j[0], i[1]]
+				selections.splice(comparingIndex, 1)
+				isFinish = false
+
+			}
+
+			else if (j[0] < i[0] && j[1] > i[1]) {
+				selections[parentIndex] = [j[0], j[1]]
+				selections.splice(comparingIndex, 1)
+				isFinish = false
+
+			}
+
+			else if (j[0] < i[0] && j[1] > i[1]) {
+				selections[parentIndex] = [i[0], i[1]]
+				selections.splice(comparingIndex, 1)
+				isFinish = false
+			}
+			else {
+				continue
+			}
+
+			// 4 casi ?
+			// 1. j[0] compreso tra i[0] e i[1] && j[1] > i[1] => new [i[0], j[1]]
+			// 2. j[0] < i[0] && j[1] compreso tra i[0] e [1] => new [j[0], i[1]]
+			// 3. j[0] < i[0] && j[1] > i[1] => new [j[0], j[1]]
+			// 4. j[0] > i[0] && j[1] < i[1] => new [i[0], i[1]]
+			// else continue
+
+		}
+	}
+
+	return createSelections(selections, isFinish)
 }
 
 /**
@@ -517,4 +574,3 @@ $('input[name="daterangepicker"]').daterangepicker({
 
 	sourceChart.redraw(false)
 });
-
