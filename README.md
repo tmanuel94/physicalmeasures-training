@@ -10,7 +10,7 @@ Simply clone this repository and then serve the index.html with whichever web se
 
 # How to use
 
-This example generates n random data, which can be modified freely in the script and then displays it in the source and result charts. You can use the 4 operation:
+This example generates n random data (n can be modified freely inside the script) and then it gets displayed in the source and result charts. You can use four operation:
 - Above
 - Belove
 - In Between
